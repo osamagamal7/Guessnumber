@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Alert, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Button, Alert, ScrollView, Dimensions } from 'react-native'
 import Card from '../components/Card'
 import NumberContainer from '../components/NumberContainer'
 import TitleText from '../components/TitleText'
@@ -33,7 +33,11 @@ const GameScreen = (props) =>{
 
     const [currentGuess, setCurrentGuess] = useState(initialGuess)
 
-    const [pastGuesses, setPastGuesses] = useState([initialGuess])
+    const [pastGuesses, setPastGuesses] = useState([initialGuess])  
+
+    const [availableWidth, setAvailableWidth] = useState(Dimensions.get('window').width)
+    const [availableHeight, setAvailableHeight] = useState(Dimensions.get('window').height)
+
 
   //useRef allows us to define a value which survives component rerenders       
     const currentHigh = useRef(100)
@@ -67,20 +71,63 @@ const GameScreen = (props) =>{
             setPastGuesses((currPastguesses => [ nextNumber.toString(), ...currPastguesses]))
       }
 
+      useEffect(() =>{
+        const updateLayout = () =>{
+            setAvailableHeight(Dimensions.get('window').height)
+            setAvailableWidth(Dimensions.get('window').width)
+        }
+
+        Dimensions.addEventListener('change', updateLayout)
+
+        return (() =>{
+            Dimensions.removeEventListener('change', updateLayout)
+        }) 
+      })
+
+      let listContainerStyle = styles.listContainer;
+
+      if(availableWidth < 350) {
+          listContainerStyle = styles.listContainerBig
+      } 
+
+      if(availableHeight < 500){
+        return(
+            <View style={styles.screen}>
+                <TitleText>Opponent's Guess: </TitleText>
+                <View style={styles.control}>
+                    <MainButton onPress={() => nextGuessHandler('lower')}>
+                      <Ionicons name="md-remove" size={24} color='white' />
+                    </MainButton>
+                    <NumberContainer>{currentGuess}</NumberContainer>
+                    <MainButton onPress={() => nextGuessHandler('higher')}>
+                        <Ionicons name="md-add" size={24} color='white' />
+                    </MainButton>
+                </View>
+                <View style={listContainerStyle}> 
+                    <ScrollView contentContainerStyle={styles.list}>
+                        {pastGuesses.map((guess, index) => (
+                            renderListItm(guess, pastGuesses.length - index)
+                        ))}
+                    </ScrollView>
+                </View>
+
+            </View>
+        )
+      }
+
     return(
             <View style={styles.screen}>
                 <TitleText>Opponent's Guess: </TitleText>
                 <NumberContainer>{currentGuess}</NumberContainer>
-
                 <Card style={styles.buttonContainer}>
                     <MainButton onPress={() => nextGuessHandler('lower')}>
-                        <Ionicons name="md-remove" size={24} color='white' />
+                      <Ionicons name="md-remove" size={24} color='white' />
                     </MainButton>
                     <MainButton onPress={() => nextGuessHandler('higher')}>
                         <Ionicons name="md-add" size={24} color='white' />
                     </MainButton>
                 </Card>
-                <View style={styles.listContainer}> 
+                <View style={listContainerStyle}> 
                     <ScrollView contentContainerStyle={styles.list}>
                         {pastGuesses.map((guess, index) => (
                             renderListItm(guess, pastGuesses.length - index)
@@ -105,6 +152,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         marginTop: 20
     },
+    control:{
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '80%',
+        alignItems: 'center'
+    },
     
     listItem:{
         borderColor: '#ccc',
@@ -114,12 +167,16 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        width: '60%'
+        width: '100%'
     },
     
     listContainer:{
-        width: '100%',
-        flex: 1
+        width:  '60%',
+        flex: 1,
+    },
+    listContainerBig:{
+        width:  '80%',
+        flex: 1,
     },
    
     list:{
